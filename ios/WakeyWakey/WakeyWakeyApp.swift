@@ -40,7 +40,7 @@ struct RootView: View {
                     switch tab {
                     case .alarm: HomeView(tab: $tab, showNight: $showNight)
                     case .schedule: ScheduleView()
-                    case .progress: ProgressScreen()
+                    case .progress: ProgressScreen(openSettings: { showSettings = true })
                     }
                 }
                 .frame(maxHeight: .infinity)

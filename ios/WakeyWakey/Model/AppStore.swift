@@ -67,6 +67,10 @@ final class AppStore {
     private var syncTask: Task<Void, Never>?
     /// True while a Health import is running.
     private(set) var importing = false
+    /// The last week of nights from Health, with stages, for the Sleep card. Read straight
+    /// from Health each time, never saved. Nil until loaded.
+    private(set) var sleepNights: [SleepNight]?
+    private var loadingSleep = false
 
     private enum Key {
         static let schedule = "schedule", settings = "settings", log = "nightLog"
@@ -175,6 +179,7 @@ final class AppStore {
         guard on else {
             settings.importFromHealth = false
             healthStatus = nil
+            sleepNights = nil
             return
         }
         await HealthService.shared.requestAccess()
@@ -186,12 +191,32 @@ final class AppStore {
     /// log. Existing nights are never changed, and each morning is only considered once.
     func importFromHealth(now: Date = .now) async {
         await runHealthImport(now: now, refresh: false)
+        await loadSleep(now: now)
     }
 
     /// Re-imports the last 30 days from Health, bringing back mornings that were handled
     /// before (including nights the user deleted). Nights already in the log are never changed.
     func refreshFromHealth(now: Date = .now) async {
         await runHealthImport(now: now, refresh: true)
+        await loadSleep(now: now)
+    }
+
+    /// True when the Sleep card can show Health data (import is on, or debug sample data).
+    var showsSleep: Bool {
+        #if DEBUG
+        if let mode = HealthService.mockSleepMode { return mode != "off" }
+        #endif
+        return settings.importFromHealth
+    }
+
+    /// Re-reads the last 7 nights (with stages) from Health for the Sleep card.
+    func loadSleep(now: Date = .now) async {
+        guard showsSleep, !loadingSleep else { return }
+        loadingSleep = true
+        defer { loadingSleep = false }
+        let nights = await HealthService.shared.sleepNights(days: 7, now: now)
+        guard showsSleep else { return }
+        sleepNights = nights
     }
 
     private func runHealthImport(now: Date, refresh: Bool) async {

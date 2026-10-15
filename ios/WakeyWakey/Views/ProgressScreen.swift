@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProgressScreen: View {
+    var openSettings: () -> Void = {}
     @Environment(AppStore.self) private var store
     /// The night being added (nil entry) or edited.
     @State private var editing: NightSheet?
@@ -27,6 +28,7 @@ struct ProgressScreen: View {
                 streakCard
                 WakeUpsCard(edit: { editing = NightSheet(entry: $0) })
                 PhoneDownCard(edit: { editing = NightSheet(entry: $0) })
+                SleepCard(openSettings: openSettings)
                 howItWorks
             }
             .foregroundStyle(Color.wwText)
@@ -34,6 +36,7 @@ struct ProgressScreen: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
+        .task { await store.loadSleep() }
         .sheet(item: $editing) { sheet in
             LogNightSheet(original: sheet.entry)
                 .presentationDetents([.medium, .large])
