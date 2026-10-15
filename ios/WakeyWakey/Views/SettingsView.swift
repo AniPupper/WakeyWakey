@@ -30,10 +30,10 @@ struct SettingsView: View {
                 toneList
                 footnote("Every chime starts a little softer and builds to your alarm volume. While you're testing Wakey Wakey, keep a backup alarm set in the Clock app.")
 
-                if store.healthPermission != .unavailable {
+                if HealthService.isAvailable {
                     section("Apple Health")
                     healthCard
-                    footnote(healthFootnote)
+                    footnote("Imports the last 30 days and checks again each time you open the app. Nights you already logged are never changed, and nights you delete won't come back. Without an Apple Watch, iPhone sleep times are estimates.")
                 }
 
                 section("Testing")
@@ -114,8 +114,8 @@ struct SettingsView: View {
 
     private var healthCard: some View {
         Toggle(isOn: Binding(
-            get: { store.settings.saveToHealth },
-            set: { on in Task { await store.setSaveToHealth(on) } },
+            get: { store.settings.importFromHealth },
+            set: { on in Task { await store.setImportFromHealth(on) } },
         )) {
             HStack(spacing: 12) {
                 Image(systemName: "heart.fill")
@@ -124,22 +124,20 @@ struct SettingsView: View {
                     .frame(width: 30, height: 30)
                     .background(Color(hex: 0xFF3B5C), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Save to Apple Health").font(.system(size: 17, weight: .semibold))
-                    Text("Adds your in-bed time each night, from night mode to \"I'm up\".")
+                    Text("Import from Apple Health").font(.system(size: 17, weight: .semibold))
+                    Text("Fills in nights you didn't log, using sleep from the Health app.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.wwMuted)
+                    if store.settings.importFromHealth, let status = store.healthStatus {
+                        Text(status)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.wwAccent)
+                    }
                 }
             }
         }
         .padding(16)
         .card()
-    }
-
-    private var healthFootnote: String {
-        if store.healthPermission == .denied {
-            return "Health access is turned off. To turn it on, open the Health app, tap your profile, then Apps → Wakey Wakey."
-        }
-        return "Shows up in the Health app under Sleep. Wakey Wakey only adds data and never reads your health information. Editing or deleting a night here updates Health too."
     }
 
     private var toneList: some View {

@@ -242,7 +242,7 @@ private struct WakeUpsCard: View {
 
     private func row(_ entry: NightEntry) -> some View {
         let who = entry.ownWake == true ? " · On my own" : entry.ownWake == false ? " · Someone woke me" : ""
-        let source = entry.manual ? " · Added by you" : entry.edited ? " · Edited" : ""
+        let source = entry.manual ? " · Added by you" : entry.edited ? " · Edited" : entry.imported ? " · From Health" : ""
         let badge = entry.minutesEarly > 1 ? "\(entry.minutesEarly) min early"
             : entry.wokeOnTime ? "Right away" : "+\(entry.minutesLate) min"
         return HStack(spacing: 12) {

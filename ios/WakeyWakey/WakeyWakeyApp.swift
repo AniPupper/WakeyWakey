@@ -11,8 +11,11 @@ struct WakeyWakeyApp: App {
                 .environment(store)
                 .preferredColorScheme(.dark)
                 .onChange(of: scenePhase, initial: true) { _, phase in
-                    // Top up the next two weeks of alarms whenever the app opens.
-                    if phase == .active { store.syncAlarms() }
+                    // Top up the next two weeks of alarms, and fill in nights from Health,
+                    // whenever the app opens.
+                    guard phase == .active else { return }
+                    store.syncAlarms()
+                    Task { await store.importFromHealth() }
                 }
         }
     }

@@ -7,8 +7,8 @@ struct AppSettings: Codable, Hashable {
     var toneName = Chimes.tones[0].name
     /// How loud the alarm gets, 0.1–1.
     var volume = 0.85
-    /// Save each night's in-bed time to Apple Health.
-    var saveToHealth = false
+    /// Fill in nights that weren't logged from Apple Health sleep data.
+    var importFromHealth = false
 
     init() {}
 
@@ -18,7 +18,7 @@ struct AppSettings: Codable, Hashable {
         rotateTones = try c.decodeIfPresent(Bool.self, forKey: .rotateTones) ?? rotateTones
         toneName = try c.decodeIfPresent(String.self, forKey: .toneName) ?? toneName
         volume = try c.decodeIfPresent(Double.self, forKey: .volume) ?? volume
-        saveToHealth = try c.decodeIfPresent(Bool.self, forKey: .saveToHealth) ?? saveToHealth
+        importFromHealth = try c.decodeIfPresent(Bool.self, forKey: .importFromHealth) ?? importFromHealth
     }
 }
 
@@ -49,30 +49,27 @@ final class AppStore {
             }
         }
     }
-    private(set) var log: [NightEntry] {
-        didSet {
-            persist(log, Key.log)
-            if !recordingHealthIDs { syncHealth() }
-        }
-    }
+    private(set) var log: [NightEntry] { didSet { persist(log, Key.log) } }
     /// The streak last shown, so the app can celebrate when it goes up.
     var seenStreak: Int { didSet { defaults.set(seenStreak, forKey: Key.seenStreak) } }
     /// Mornings whose alarm was skipped with "I'm already up".
     private var skippedAlarms: Set<Date> { didSet { persist(skippedAlarms, Key.skipped) } }
+    /// Mornings (start of day) already handled by a Health import, so a night that was
+    /// deleted or edited is never filled in again.
+    private var healthMornings: Set<Date> { didSet { persist(healthMornings, Key.healthMornings) } }
 
     var morning: MorningSession?
     var alarmPermission = AlarmService.shared.status
-    var healthPermission = HealthService.shared.permission
+    /// The result of the last Health import, shown in Settings.
+    var healthStatus: String?
 
     private let defaults = UserDefaults.standard
     private var syncTask: Task<Void, Never>?
-    private var healthTask: Task<Void, Never>?
-    /// Set while saving Health sample IDs, so that bookkeeping doesn't start another sync.
-    private var recordingHealthIDs = false
+    private var importing = false
 
     private enum Key {
         static let schedule = "schedule", settings = "settings", log = "nightLog"
-        static let seenStreak = "seenStreak", skipped = "skippedAlarms"
+        static let seenStreak = "seenStreak", skipped = "skippedAlarms", healthMornings = "healthImportedMornings"
     }
 
     private init() {
@@ -81,6 +78,7 @@ final class AppStore {
         log = Self.load([NightEntry].self, Key.log) ?? []
         seenStreak = UserDefaults.standard.integer(forKey: Key.seenStreak)
         skippedAlarms = Self.load(Set<Date>.self, Key.skipped) ?? []
+        healthMornings = Self.load(Set<Date>.self, Key.healthMornings) ?? []
     }
 
     // MARK: Derived
@@ -108,13 +106,11 @@ final class AppStore {
     func saveNight(_ entry: NightEntry, replacing original: NightEntry?) {
         let calendar = Calendar.current
         let replaced = log.filter { $0.alarmAt == original?.alarmAt || calendar.isDate($0.alarmAt, inSameDayAs: entry.alarmAt) }
-        removeFromHealth(replaced)
         log.removeAll { replaced.contains($0) }
         log.append(entry)
     }
 
     func deleteNight(_ entry: NightEntry) {
-        removeFromHealth(log.filter { $0.alarmAt == entry.alarmAt })
         log.removeAll { $0.alarmAt == entry.alarmAt }
     }
 
@@ -172,38 +168,52 @@ final class AppStore {
 
     // MARK: Apple Health
 
-    /// Turns saving to Apple Health on (asking for permission the first time) or off.
-    func setSaveToHealth(_ on: Bool) async {
+    /// Turns importing from Apple Health on (showing Apple's permission sheet the first
+    /// time, so call it from a tap) or off.
+    func setImportFromHealth(_ on: Bool) async {
         guard on else {
-            settings.saveToHealth = false
+            settings.importFromHealth = false
+            healthStatus = nil
             return
         }
-        healthPermission = await HealthService.shared.requestPermission()
-        settings.saveToHealth = healthPermission == .allowed
-        syncHealth()
+        await HealthService.shared.requestAccess()
+        settings.importFromHealth = true
+        await importFromHealth()
     }
 
-    /// Saves any finished nights that aren't in Health yet (debounced).
-    func syncHealth() {
-        guard settings.saveToHealth else { return }
-        healthTask?.cancel()
-        healthTask = Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-            healthPermission = HealthService.shared.permission
-            for entry in log where entry.healthSampleID == nil && HealthService.canSave(entry) {
-                guard let id = await HealthService.shared.save(entry) else { continue }
-                recordingHealthIDs = true
-                if let index = log.firstIndex(where: { $0.alarmAt == entry.alarmAt }) { log[index].healthSampleID = id }
-                recordingHealthIDs = false
-            }
+    /// Fills in mornings from the last 30 days that have sleep in Health but nothing in the
+    /// log. Existing nights are never changed, and each morning is only considered once.
+    func importFromHealth(now: Date = .now) async {
+        guard settings.importFromHealth, HealthService.isAvailable, !importing else { return }
+        importing = true
+        defer { importing = false }
+        if healthStatus == nil { healthStatus = "Checking Health…" }
+
+        let calendar = Calendar.current
+        let sessions = await HealthService.shared.sleepSessions(now: now, calendar: calendar)
+        guard settings.importFromHealth else { return }
+        guard !sessions.isEmpty else {
+            healthStatus = "No sleep data found in Health yet."
+            return
         }
-    }
 
-    private func removeFromHealth(_ entries: [NightEntry]) {
-        let ids = entries.compactMap(\.healthSampleID)
-        guard !ids.isEmpty else { return }
-        Task { for id in ids { await HealthService.shared.delete(sampleID: id) } }
+        var added = 0
+        for session in sessions {
+            let morning = calendar.startOfDay(for: session.end)
+            let alarmAt = schedule.plan(for: morning).wake.on(morning, calendar: calendar)
+            // Today's alarm hasn't rung yet, so leave the morning to the alarm.
+            guard alarmAt <= now, !healthMornings.contains(morning) else { continue }
+            healthMornings.insert(morning)
+            guard !log.contains(where: { calendar.isDate($0.alarmAt, inSameDayAs: morning) }) else { continue }
+            var entry = NightEntry(alarmAt: alarmAt)
+            entry.bedtimeAt = schedule.bedtime(before: alarmAt)
+            entry.phoneDownAt = session.start
+            entry.stoppedAt = session.end
+            entry.imported = true
+            log.append(entry)
+            added += 1
+        }
+        healthStatus = added == 0 ? "Up to date" : "Imported \(added) night\(added == 1 ? "" : "s")"
     }
 
     // MARK: Alarms

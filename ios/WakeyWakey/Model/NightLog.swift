@@ -12,10 +12,28 @@ struct NightEntry: Codable, Hashable, Identifiable {
     var manual = false
     /// Recorded by the app, then changed by hand.
     var edited = false
-    /// The "In Bed" sample saved to Apple Health for this night, if any.
-    var healthSampleID: UUID?
+    /// Filled in from Apple Health sleep data (and not changed by hand since).
+    var imported = false
 
     var id: Date { alarmAt }
+
+    init(alarmAt: Date) {
+        self.alarmAt = alarmAt
+    }
+
+    /// Missing keys keep their defaults, so nights saved by an older version still load
+    /// (otherwise one new field would make the whole log fail to decode).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        alarmAt = try c.decode(Date.self, forKey: .alarmAt)
+        bedtimeAt = try c.decodeIfPresent(Date.self, forKey: .bedtimeAt)
+        phoneDownAt = try c.decodeIfPresent(Date.self, forKey: .phoneDownAt)
+        stoppedAt = try c.decodeIfPresent(Date.self, forKey: .stoppedAt)
+        ownWake = try c.decodeIfPresent(Bool.self, forKey: .ownWake)
+        manual = try c.decodeIfPresent(Bool.self, forKey: .manual) ?? false
+        edited = try c.decodeIfPresent(Bool.self, forKey: .edited) ?? false
+        imported = try c.decodeIfPresent(Bool.self, forKey: .imported) ?? false
+    }
 
     /// Minutes after the alarm she was up (0 if earlier).
     var minutesLate: Int {
