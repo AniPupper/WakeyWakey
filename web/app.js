@@ -522,10 +522,11 @@ function renderProgress() {
       const row = historyRow(
         describeDate(new Date(entry.alarmAt), now),
         `Alarm ${formatTime(new Date(entry.alarmAt))} · Up ${formatTime(new Date(entry.stoppedAt))}${who}`,
-        entry.stoppedAt < entry.alarmAt - MINUTE
-          ? `${Math.round((entry.alarmAt - entry.stoppedAt) / MINUTE)} min early`
-          : onTime ? "Right away" : `+${late} min`,
-        onTime,
+        entry.ownWake === false ? "Woken up"
+          : entry.stoppedAt < entry.alarmAt - MINUTE
+            ? `${Math.round((entry.alarmAt - entry.stoppedAt) / MINUTE)} min early`
+            : onTime ? "Right away" : `+${late} min`,
+        wokeOnTime(entry),
       );
       makeEditable(row, entry);
       return row;
