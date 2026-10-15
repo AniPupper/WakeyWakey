@@ -1,0 +1,9 @@
+{
+  "name": "Wakey Wakey",
+  "short_name": "Wakey Wakey",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1c1e",
+  "theme_color": "#1c1c1e"
+}

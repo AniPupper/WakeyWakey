@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wakey Wakey">
+  <meta name="theme-color" content="#101118">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Wakey Wakey</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <!-- Shared header for the tab pages: centered title, settings top right -->
+  <header id="app-header" class="app-header">
+    <span aria-hidden="true"></span>
+    <h1 class="logo" aria-label="Wakey Wakey">
+      <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><path d="M44 8a26 26 0 1 0 12 34A21 21 0 0 1 44 8z" fill="var(--moon)"/><path d="M17 33q3.5-4 7 0M28 37q4 4 8 0" stroke="#5b4630" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+      <span aria-hidden="true">wakey <span class="logo-accent">wakey</span></span>
+    </h1>
+    <button id="open-settings" class="icon-button" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <!-- Alarm tab: the wake-up card from the mockup -->
+  <main id="home" class="screen tab-screen">
+    <!-- Consistency streak with Luna the moon -->
+    <button id="streak-chip" class="streak-box card">
+      <span id="streak-mascot" class="mascot"></span>
+      <span class="streak-box-text">
+        <span class="streak-line">
+          <span id="streak-number" class="streak-number">0</span>
+          <span id="streak-unit" class="streak-unit">night streak</span>
+        </span>
+        <span id="streak-chip-detail" class="row-detail"></span>
+      </span>
+      <span class="chevron" aria-hidden="true">&rsaquo;</span>
+      <span id="streak-pips" class="streak-pips"></span>
+    </button>
+
+    <button id="wake-card" class="wake-card card" aria-label="Change alarm times">
+      <span class="wake-label">Wake Up set for</span>
+      <span id="wake-time" class="wake-time">6:30 AM</span>
+      <span class="dashes" aria-hidden="true"></span>
+      <span id="wake-bedtime" class="wake-detail"></span>
+      <span id="wake-countdown" class="wake-detail muted"></span>
+      <span class="edit-button" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></svg>
+        Change times
+      </span>
+    </button>
+
+    <button id="start-night" class="primary">Start night mode</button>
+
+    <!-- Consistency: night mode start to "I'm up" for the last 7 nights -->
+    <section class="card rhythm-card" aria-labelledby="rhythm-title">
+      <h3 id="rhythm-title">Your rhythm</h3>
+      <p id="rhythm-summary" class="row-detail"></p>
+      <div id="rhythm-chart" class="rhythm-chart"></div>
+      <div class="rhythm-axis" aria-hidden="true">
+        <span style="left: 11.1%">8 PM</span>
+        <span style="left: 33.3%">12 AM</span>
+        <span style="left: 55.6%">4 AM</span>
+        <span style="left: 77.8%">8 AM</span>
+      </div>
+      <div class="legend">
+        <span><i class="swatch actual"></i>Phone down to wake-up</span>
+        <span><i class="swatch planned"></i>Your schedule</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Schedule tab -->
+  <section id="schedule" class="screen tab-screen" hidden>
+    <h2 class="page-title">Schedule</h2>
+
+    <div id="mode-picker" class="segmented" role="radiogroup" aria-label="Schedule type">
+      <span class="segment-indicator" aria-hidden="true"></span>
+      <button role="radio" data-mode="everyday">Every day</button>
+      <button role="radio" data-mode="weekdays">Weekdays</button>
+      <button role="radio" data-mode="custom">Custom</button>
+    </div>
+
+    <div id="schedule-editor" class="schedule-editor"></div>
+    <p class="hint">Bedtime means the night before each wake-up.</p>
+
+    <label class="row-card card">
+      <span>
+        <span class="row-title">Alarms on</span>
+        <span class="row-detail">Turn off for vacations without losing your times.</span>
+      </span>
+      <input id="alarms-enabled" type="checkbox" class="switch" role="switch">
+    </label>
+  </section>
+
+  <!-- Progress tab: streak (sleep-schedule incentive), wake-ups, phone-down times -->
+  <section id="progress" class="screen tab-screen" hidden>
+    <div class="page-title-row">
+      <h2 class="page-title">Progress</h2>
+      <button id="open-log-night" class="pill-button">+ Log a night</button>
+    </div>
+
+    <div class="card streak-card" aria-label="Consistency streak">
+      <div id="progress-mascot" class="mascot big"></div>
+      <div id="streak-count" class="streak-count">0</div>
+      <div class="streak-label">night streak</div>
+      <p class="goals-title">Next goals</p>
+      <ul id="streak-goals" class="streak-goals"></ul>
+    </div>
+
+    <section class="card list-card" aria-labelledby="phone-title">
+      <h3 id="phone-title">Phone down</h3>
+      <div id="phone-stats" class="stat-tiles"></div>
+      <ul id="phone-list" class="phone-list"></ul>
+      <p id="phone-empty" class="empty">Start night mode tonight to begin tracking.</p>
+      <p class="edit-hint">Tap a night to edit or delete it.</p>
+    </section>
+
+    <section class="card list-card" aria-labelledby="wakeups-title">
+      <h3 id="wakeups-title">Wake-ups</h3>
+      <ol id="week-strip" class="week-strip" aria-label="Last 7 days"></ol>
+      <ul id="history-list" class="history-list"></ul>
+      <p id="history-empty" class="empty">Your wake-ups show up here after the alarm rings.</p>
+      <p class="edit-hint">Tap a night to edit or delete it.</p>
+    </section>
+
+    <section class="card list-card how-it-works" aria-labelledby="how-title">
+      <h3 id="how-title">How streaks work</h3>
+      <p>A morning adds to your streak when you hit both goals:</p>
+      <ul>
+        <li><strong>Up on time.</strong> Tap "I'm up" within 2 minutes of the alarm. Awake before it? Tap "I'm already up" in night mode. That counts too.</li>
+        <li><strong>On your own.</strong> Answer "Yes, on my own" in the morning check-in.</li>
+      </ul>
+      <p>Phone-down time doesn't affect your streak. It's there to help you see your routine: green minutes mean your phone went down before bedtime, red minutes mean after.</p>
+      <p>Days with no alarm don't break your streak. Forgot night mode? Use "Log a night" at the top to add it, and it still counts.</p>
+      <p>Luna changes with the real moon phase, and glows once your streak reaches a week.</p>
+    </section>
+  </section>
+
+  <!-- Settings (top right gear) -->
+  <section id="settings" class="screen" hidden>
+    <header class="page-header">
+      <button id="settings-back" class="back">&lsaquo; Back</button>
+      <h2>Settings</h2>
+      <span aria-hidden="true"></span>
+    </header>
+
+    <h3 class="section-label">Wake-up sound</h3>
+    <div class="card volume-card">
+      <div class="volume-head">
+        <label for="alarm-volume" class="row-title">Alarm volume</label>
+        <span id="volume-value" class="volume-value"></span>
+      </div>
+      <div class="volume-row">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/></svg>
+        <input id="alarm-volume" type="range" min="10" max="100" step="5">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" stroke="none"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </div>
+      <p class="row-detail">How loud the alarm gets. Let go of the slider to hear it. This works on top of your phone's own volume, so keep that turned up.</p>
+    </div>
+
+    <label class="row-card card">
+      <span>
+        <span class="row-title">Different chime each day</span>
+        <span class="row-detail">Changing the sound keeps you from getting used to it and sleeping through.</span>
+      </span>
+      <input id="rotate-tones" type="checkbox" class="switch" role="switch">
+    </label>
+
+    <h3 id="tones-label" class="section-label"></h3>
+    <ul id="tone-list" class="card tone-list"></ul>
+
+    <p class="footnote">Every chime starts a little softer and builds to your alarm volume over the first minute. While you're testing Wakey Wakey, keep a backup alarm set in the Clock app.</p>
+
+    <h3 class="section-label">Testing</h3>
+    <button id="test-alarm" class="test-row card">
+      <span>
+        <span class="row-title">Test the alarm</span>
+        <span id="test-alarm-detail" class="row-detail">Rings in 10 seconds with your chime and volume.</span>
+      </span>
+      <span class="chevron" aria-hidden="true">&rsaquo;</span>
+    </button>
+    <p class="footnote">Runs the whole morning: night mode, the alarm, "I'm up", the check-in and the celebration. Nothing is logged and your streak doesn't change.</p>
+
+    <h3 class="section-label">Data</h3>
+    <button id="clear-history" class="danger-row card">Clear history</button>
+    <p class="footnote">Removes your wake-ups, phone-down times and streak, for example after testing. Your schedule and settings stay.</p>
+  </section>
+
+  <!-- Log a missed night by hand -->
+  <dialog id="log-night" class="sheet" aria-labelledby="log-night-title">
+    <form id="log-night-form" method="dialog">
+      <h2 id="log-night-title">Log a missed night</h2>
+      <p id="log-night-help" class="row-detail"></p>
+
+      <div class="form-pair">
+        <label class="form-field">
+          <span>Morning of</span>
+          <input id="log-date" type="date" required>
+        </label>
+        <label class="form-field">
+          <span>Alarm was set for</span>
+          <input id="log-alarm" type="time" required>
+        </label>
+      </div>
+      <div class="form-pair">
+        <label class="form-field">
+          <span>Phone down</span>
+          <input id="log-phone-down" type="time" required>
+        </label>
+        <label class="form-field">
+          <span>Woke up</span>
+          <input id="log-woke" type="time" required>
+        </label>
+      </div>
+      <label class="row-card form-toggle">
+        <span class="row-title">Woke up on my own</span>
+        <input id="log-own" type="checkbox" class="switch" role="switch" checked>
+      </label>
+
+      <div class="sheet-actions">
+        <button type="button" id="log-cancel" class="secondary">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+      <button type="button" id="log-delete" class="text-danger" hidden>Delete this night</button>
+    </form>
+  </dialog>
+
+  <!-- Bottom navigation -->
+  <nav id="tab-bar" class="tab-bar" aria-label="Pages">
+    <button data-tab="schedule">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Schedule
+    </button>
+    <button data-tab="home" class="tab-main">
+      <span class="tab-main-circle"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></svg></span>
+      Alarm
+    </button>
+    <button data-tab="progress">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Progress
+    </button>
+  </nav>
+
+  <!-- Night mode: near-black so it doesn't light up the room -->
+  <section id="night" class="screen night" hidden>
+    <div id="night-clock" class="night-clock"></div>
+    <div id="night-alarm" class="night-alarm"></div>
+    <button id="wake-early" class="wake-early" hidden>I'm already up</button>
+    <button id="exit-night" class="night-exit">Exit night mode</button>
+  </section>
+
+  <!-- Ringing, then a one-tap morning check-in -->
+  <section id="ringing" class="screen ringing" hidden>
+    <div id="ring-main" class="ring-main">
+      <p class="ring-greeting">Good morning</p>
+      <div id="ring-clock" class="ring-clock"></div>
+      <p id="ring-tone" class="muted"></p>
+      <button id="stop-alarm" class="stop">I'm up</button>
+    </div>
+    <div id="check-in" class="check-in" hidden>
+      <p id="check-in-greeting" class="ring-greeting">Nice, you're up!</p>
+      <p class="check-in-question">Did you wake up on your own?</p>
+      <button id="own-yes" class="primary">Yes, on my own</button>
+      <button id="own-no" class="secondary">Someone woke me up</button>
+    </div>
+    <div id="celebrate" class="check-in" hidden>
+      <div id="celebrate-mascot" class="mascot big"></div>
+      <p class="celebrate-title"><span id="celebrate-number"></span><span id="celebrate-title"></span></p>
+      <p id="celebrate-detail" class="check-in-question"></p>
+      <button id="celebrate-done" class="primary">Continue</button>
+    </div>
+  </section>
+</body>
+</html>
