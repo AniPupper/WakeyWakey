@@ -25,8 +25,8 @@ struct ProgressScreen: View {
                         .overlay(Capsule().strokeBorder(Color.wwAccent.opacity(0.5), lineWidth: 1.5))
                 }
                 streakCard
-                PhoneDownCard(edit: { editing = NightSheet(entry: $0) })
                 WakeUpsCard(edit: { editing = NightSheet(entry: $0) })
+                PhoneDownCard(edit: { editing = NightSheet(entry: $0) })
                 howItWorks
             }
             .foregroundStyle(Color.wwText)
