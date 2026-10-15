@@ -1,10 +1,9 @@
-# Publishes the web version (the web/ folder) to GitHub Pages whenever it changes on main.
+# Publishes the web version (the web/ folder) to GitHub Pages on every push to main.
 name: Deploy web version
 
 on:
   push:
     branches: [main]
-    paths: ["web/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
