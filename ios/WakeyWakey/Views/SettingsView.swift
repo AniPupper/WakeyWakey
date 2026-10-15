@@ -33,7 +33,7 @@ struct SettingsView: View {
                 if HealthService.isAvailable {
                     section("Apple Health")
                     healthCard
-                    footnote("Imports the last 30 days and checks again each time you open the app. Nights you already logged are never changed, and nights you delete won't come back. Without an Apple Watch, iPhone sleep times are estimates.")
+                    footnote("Imports the last 30 days and checks again each time you open the app. Nights you delete don't come back on their own, but \"Refresh from Health\" brings them back. Nights already in your log are never changed. Without an Apple Watch, iPhone sleep times are estimates.")
                 }
 
                 section("Testing")
@@ -113,6 +113,38 @@ struct SettingsView: View {
     }
 
     private var healthCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            healthToggle
+            if store.settings.importFromHealth {
+                Button {
+                    Task { await store.refreshFromHealth() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if store.importing {
+                            ProgressView().controlSize(.small).tint(Color.wwAccent)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Text("Refresh from Health")
+                    }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.wwAccent)
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 36)
+                    .background(Color.wwAccentSoft, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.wwAccent.opacity(0.5), lineWidth: 1.5))
+                    .opacity(store.importing ? 0.6 : 1)
+                }
+                .buttonStyle(.plain)
+                .disabled(store.importing)
+                .padding(.leading, 42)
+            }
+        }
+        .padding(16)
+        .card()
+    }
+
+    private var healthToggle: some View {
         Toggle(isOn: Binding(
             get: { store.settings.importFromHealth },
             set: { on in Task { await store.setImportFromHealth(on) } },
@@ -136,8 +168,6 @@ struct SettingsView: View {
                 }
             }
         }
-        .padding(16)
-        .card()
     }
 
     private var toneList: some View {

@@ -55,7 +55,7 @@ final class AppStore {
     /// Mornings whose alarm was skipped with "I'm already up".
     private var skippedAlarms: Set<Date> { didSet { persist(skippedAlarms, Key.skipped) } }
     /// Mornings (start of day) already handled by a Health import, so a night that was
-    /// deleted or edited is never filled in again.
+    /// deleted or edited isn't filled in again (until the user taps "Refresh from Health").
     private var healthMornings: Set<Date> { didSet { persist(healthMornings, Key.healthMornings) } }
 
     var morning: MorningSession?
@@ -65,7 +65,8 @@ final class AppStore {
 
     private let defaults = UserDefaults.standard
     private var syncTask: Task<Void, Never>?
-    private var importing = false
+    /// True while a Health import is running.
+    private(set) var importing = false
 
     private enum Key {
         static let schedule = "schedule", settings = "settings", log = "nightLog"
@@ -184,10 +185,24 @@ final class AppStore {
     /// Fills in mornings from the last 30 days that have sleep in Health but nothing in the
     /// log. Existing nights are never changed, and each morning is only considered once.
     func importFromHealth(now: Date = .now) async {
+        await runHealthImport(now: now, refresh: false)
+    }
+
+    /// Re-imports the last 30 days from Health, bringing back mornings that were handled
+    /// before (including nights the user deleted). Nights already in the log are never changed.
+    func refreshFromHealth(now: Date = .now) async {
+        await runHealthImport(now: now, refresh: true)
+    }
+
+    private func runHealthImport(now: Date, refresh: Bool) async {
         guard settings.importFromHealth, HealthService.isAvailable, !importing else { return }
         importing = true
         defer { importing = false }
-        if healthStatus == nil { healthStatus = "Checking Health…" }
+        if refresh {
+            healthStatus = "Refreshing…"
+        } else if healthStatus == nil {
+            healthStatus = "Checking Health…"
+        }
 
         let calendar = Calendar.current
         let sessions = await HealthService.shared.sleepSessions(now: now, calendar: calendar)
@@ -196,6 +211,9 @@ final class AppStore {
             healthStatus = "No sleep data found in Health yet."
             return
         }
+        // Forget which mornings were handled only once Health has answered, so a failed
+        // or empty read doesn't let a later automatic import bring deleted nights back.
+        if refresh { healthMornings.removeAll() }
 
         var added = 0
         for session in sessions {
