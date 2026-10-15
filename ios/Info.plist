@@ -4,5 +4,9 @@
 <dict>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Wakey Wakey rings your gentle wake-up alarm, even when your phone is locked.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Wakey Wakey checks that it can save your in-bed time to Apple Health.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Wakey Wakey saves your in-bed time, from night mode to I’m up, to Apple Health.</string>
 </dict>
 </plist>

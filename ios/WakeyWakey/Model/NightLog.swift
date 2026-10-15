@@ -12,6 +12,8 @@ struct NightEntry: Codable, Hashable, Identifiable {
     var manual = false
     /// Recorded by the app, then changed by hand.
     var edited = false
+    /// The "In Bed" sample saved to Apple Health for this night, if any.
+    var healthSampleID: UUID?
 
     var id: Date { alarmAt }
 
